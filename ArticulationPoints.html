@@ -62,12 +62,77 @@
       text-align: center;
     }
   </style>
-  <script type="text/javascript" src="./exampleUtil.js"></script>
+
   <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script type="text/javascript">
+  	function getScaleFreeNetwork(nodeCount) {
+	  var nodes = [];
+	  var edges = [];
+	  var connectionCount = [];
+
+	  // randomly create some nodes and edges
+	  for (var i = 0; i < nodeCount; i++) {
+	    nodes.push({
+	      id: i,
+	      label: String(i)
+	    });
+
+	    connectionCount[i] = 0;
+
+	    // create edges in a scale-free-network way
+	    if (i == 1) {
+	      var from = i;
+	      var to = 0;
+	      edges.push({
+	        from: from,
+	        to: to
+	      });
+
+	      adj[from].push(to);
+	      adj[to].push(from);
+	      
+	      connectionCount[from]++;
+	      connectionCount[to]++;
+	    }
+	    else if (i > 1) {
+	      var conn = edges.length * 2;
+	      var rand = Math.floor(seededRandom() * conn);
+	      var cum = 0;
+	      var j = 0;
+	      while (j < connectionCount.length && cum < rand) {
+	        cum += connectionCount[j];
+	        j++;
+	      }
+
+
+	      var from = i;
+	      var to = j;
+	      edges.push({
+	        from: from,
+	        to: to
+	      });
+
+	      adj[from].push(to);
+	      adj[to].push(from);
+
+
+	      connectionCount[from]++;
+	      connectionCount[to]++;
+	    }
+	  }
+
+	  return {nodes:nodes, edges:edges};
+	}
+
+	var randomSeed = 764; // Math.round(Math.random()*1000);
+	function seededRandom() {
+	  var x = Math.sin(randomSeed++) * 10000;
+	  return x - Math.floor(x);
+	}
+  </script>
 
   <script type="text/javascript">
-    var nodes = null;
-    var edges = null;
+  	var adj = null;
     var nbrNodes = 0;
     var network = null;
     var data = null;
@@ -76,6 +141,12 @@
     // randomly create some nodes and edges
     function drawRandom(nbr_Nodes=25){
     	nbrNodes = nbr_Nodes;
+    	
+    	adj = null;
+    	adj = new Array(nbrNodes);
+    	for (var i = 0; i < adj.length; i++)
+    		adj[i] = new Array();
+
     	data = getScaleFreeNetwork(nbrNodes);
     	draw();
     }
@@ -98,50 +169,92 @@
           addNode: function (nodeData, callback) {
             nodeData.label = String(nbrNodes);
             nodeData.id = nbrNodes;
+            
+            data.nodes.push({
+					      id: nodeData.id,
+					      label: String(nodeData.id)
+					    });
+            adj.push([]);
+            
             nbrNodes++;
       		callback(nodeData);
           },
-          addEdge: function (data, callback) {
-            if (data.from == data.to) {
+          addEdge: function (edgeData, callback) {
+            if (edgeData.from == edgeData.to) {
               var r = confirm("Do you want to connect the node to itself?");
               if (r != true) {
                 callback(null);
                 return;
               }
             }
-            if (typeof data.to === 'object')
-		        data.to = data.to.id
-		    if (typeof data.from === 'object')
-		        data.from = data.from.id
-		    data.label = "";
-	        callback(data);
+            if (typeof edgeData.to === 'object')
+		        edgeData.to = edgeData.to.id
+		    if (typeof edgeData.from === 'object')
+		        edgeData.from = edgeData.from.id
+		    
+		    edgeData.label = "";
+		    
+		    adj[edgeData.from].push(edgeData.to);
+	     	adj[edgeData.to].push(edgeData.from);
+
+		    data.edges.push({
+				        from: edgeData.from,
+				        to: edgeData.to,
+				        id: edgeData.id
+				      });
+
+	        callback(edgeData);
           },
           deleteNode : function (nodeData, callback) {
           	if(nodeData.nodes[0]===(nbrNodes-1))
           	{
           		nbrNodes--;
+          		data.nodes.pop();//find connected edges edge and delete them
+          		deleteNodeEdges(nbrNodes);
+          		adj.pop();
           		callback(nodeData);
           	}
           	else
           		callback(null);
-          }
+          },
+          deleteEdge : function (edgeData, callback){
+          	var edge = network.getConnectedNodes(edgeData.edges[0]);
+          	deleteEdges(edge[0],edge[1]);
+          	callback(edgeData);
+          },
+          editEdge : false
         }
       };
       network = new vis.Network(container, data, options);
-      window.alert(nbrNodes);
+    }
 
+    function deleteNodeEdges(node)
+    {
+    	for(var i = 0; i < adj[node].length; i++)
+    	{
+    		var index = adj[adj[node][i]].findIndex(n => n == node);
+    		adj[adj[node][i]].splice(index, 1);
+    	}
+    }
+    function deleteEdges(from, to)
+    {
+    		var index = adj[from].findIndex(n => n == to);
+    		adj[from].splice(index, 1);
+    		index = adj[to].findIndex(n => n == from);
+    		adj[to].splice(index, 1);
     }
    
-
     function init() {	  
       drawRandom();
     }
 
     function start() {
-	  drawRandom(document.getElementById("nbrNodes").value);
+	  drawRandom(parseInt(document.getElementById("nbrNodes").value));
 	}
 	function findAPs() {
-		window.alert("Finding APs...");
+		//window.alert("Finding APs...");
+		console.log(data);
+		console.log(adj);
 	}
 
   </script>
