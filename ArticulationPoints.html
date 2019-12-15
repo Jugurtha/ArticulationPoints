@@ -23,18 +23,6 @@
         left: 80%;
         padding: 1em;
       }
-    /*#control {
-    	width: 50%;
-	  float: left;
-    }
-    #mynetwork {
-	  width: 50%;
-	  float: right;
-      //margin: 0 auto;
-      width: 800px;
-      height: 600px;
-      border: 1px solid lightgray;
-    }*/
     table.legend_table {
       font-size: 11px;
       border-width:1px;
@@ -73,21 +61,6 @@
       padding:10px;
       text-align: center;
     }
-    #edge-popUp {
-      display:none;
-      position:absolute;
-      top:350px;
-      left:170px;
-      z-index:299;
-      width:250px;
-      height:90px;
-      background-color: #f9f9f9;
-      border-style:solid;
-      border-width:3px;
-      border-color: #5394ed;
-      padding:10px;
-      text-align: center;
-    }
   </style>
   <script type="text/javascript" src="./exampleUtil.js"></script>
   <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
@@ -95,28 +68,16 @@
   <script type="text/javascript">
     var nodes = null;
     var edges = null;
+    var nbrNodes = 0;
     var network = null;
     var data = null;
     var seed = 2;
 
     // randomly create some nodes and edges
-    function drawRandom(nbrNodes=25){
+    function drawRandom(nbr_Nodes=25){
+    	nbrNodes = nbr_Nodes;
     	data = getScaleFreeNetwork(nbrNodes);
     	draw();
-    }
-     
-    
-
-    function setDefaultLocale() {
-      var defaultLocal = navigator.language;
-      var select = document.getElementById('locale');
-      select.selectedIndex = 0; // set fallback value
-      for (var i = 0, j = select.options.length; i < j; ++i) {
-        if (select.options[i].getAttribute('value') === defaultLocal) {
-          select.selectedIndex = i;
-          break;
-        }
-      }
     }
 
     function destroy() {
@@ -128,24 +89,17 @@
 
     function draw() {
       destroy();
-      nodes = [];
-      edges = [];
-
       // create a network
       var container = document.getElementById('mynetwork');
       var options = {
         layout: {randomSeed:seed}, 
         locale: "en",
         manipulation: {
-          addNode: function (data, callback) {
-            // filling in the popup DOM elements
-            document.getElementById('node-operation').innerHTML = "Add Node";
-            editNode(data, clearNodePopUp, callback);
-          },
-          editNode: function (data, callback) {
-            // filling in the popup DOM elements
-            document.getElementById('node-operation').innerHTML = "Edit Node";
-            editNode(data, cancelNodeEdit, callback);
+          addNode: function (nodeData, callback) {
+            nodeData.label = String(nbrNodes);
+            nodeData.id = nbrNodes;
+            nbrNodes++;
+      		callback(nodeData);
           },
           addEdge: function (data, callback) {
             if (data.from == data.to) {
@@ -162,48 +116,29 @@
 		    data.label = "";
 	        callback(data);
           },
-          editEdge: false
+          deleteNode : function (nodeData, callback) {
+          	if(nodeData.nodes[0]===(nbrNodes-1))
+          	{
+          		nbrNodes--;
+          		callback(nodeData);
+          	}
+          	else
+          		callback(null);
+          }
         }
       };
       network = new vis.Network(container, data, options);
-    }
+      window.alert(nbrNodes);
 
-    function editNode(data, cancelAction, callback) {
-      document.getElementById('node-label').value = data.label;
-      document.getElementById('node-saveButton').onclick = saveNodeData.bind(this, data, callback);
-      document.getElementById('node-cancelButton').onclick = cancelAction.bind(this, callback);
-      document.getElementById('node-popUp').style.display = 'block';
     }
-
-    // Callback passed as parameter is ignored
-    function clearNodePopUp() {
-      document.getElementById('node-saveButton').onclick = null;
-      document.getElementById('node-cancelButton').onclick = null;
-      document.getElementById('node-popUp').style.display = 'none';
-    }
-
-    function cancelNodeEdit(callback) {
-      clearNodePopUp();
-      callback(null);
-    }
-
-    function saveNodeData(data, callback) {
-      data.label = document.getElementById('node-label').value;
-      clearNodePopUp();
-      callback(data);
-    }
-
    
 
-    function init() {
-      //setDefaultLocale();
-	  
+    function init() {	  
       drawRandom();
     }
 
     function start() {
-	  var nbrNodes = document.getElementById("nbrNodes").value ;
-	  drawRandom(nbrNodes);
+	  drawRandom(document.getElementById("nbrNodes").value);
 	}
 	function findAPs() {
 		window.alert("Finding APs...");
@@ -215,33 +150,16 @@
 
 <body onload="init();">
 
-<div  id="control">
-	
-		<span>Enter the number of nodes :<input type="number" id="nbrNodes" min="1" max="50" value="5"></span>
-		<span><button onclick="start()" >Draw</button></span>
-		<br>
-		<br>
-		<div><span><button onclick="findAPs()" >Find articulation points</button></span></div>
-	
-</div>
-<div id="mynetwork" class="block"></div>
-
-
-<div id="node-popUp">
-  <span id="node-operation">node</span> <br>
-  <table style="margin:auto;">
-    <tr>
-      <td>id</td><td><input id="node-id" value="new value" /></td>
-    </tr>
-    <tr>
-      <td>label</td><td><input id="node-label" value="new value" /></td>
-    </tr>
-  </table>
-  <input type="button" value="save" id="node-saveButton" />
-  <input type="button" value="cancel" id="node-cancelButton" />
-</div>
-
-
+	<div  id="control">
+		
+			<span>Enter the number of nodes :<input type="number" id="nbrNodes" min="1" max="50" value="5"></span>
+			<span><button onclick="start()" >Draw</button></span>
+			<br>
+			<br>
+			<div><span><button onclick="findAPs()" >Find articulation points</button></span></div>
+		
+	</div>
+	<div id="mynetwork" class="block"></div>
 
 </body>
 </html>
