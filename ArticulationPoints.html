@@ -23,44 +23,6 @@
         left: 80%;
         padding: 1em;
       }
-    table.legend_table {
-      font-size: 11px;
-      border-width:1px;
-      border-color:#d3d3d3;
-      border-style:solid;
-    }
-    table.legend_table,td {
-      border-width:1px;
-      border-color:#d3d3d3;
-      border-style:solid;
-      padding: 2px;
-    }
-    div.table_content {
-      width:80px;
-      text-align:center;
-    }
-    div.table_description {
-      width:100px;
-    }
-
-    #operation {
-      font-size:28px;
-    }
-    #node-popUp {
-      display:none;
-      position:absolute;
-      top:350px;
-      left:170px;
-      z-index:299;
-      width:250px;
-      height:120px;
-      background-color: #f9f9f9;
-      border-style:solid;
-      border-width:3px;
-      border-color: #5394ed;
-      padding:10px;
-      text-align: center;
-    }
   </style>
 
   <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
@@ -137,6 +99,7 @@
     var network = null;
     var data = null;
     var seed = 2;
+    var time = 0;
 
     // randomly create some nodes and edges
     function drawRandom(nbr_Nodes=25){
@@ -251,10 +214,123 @@
     function start() {
 	  drawRandom(parseInt(document.getElementById("nbrNodes").value));
 	}
+
 	function findAPs() {
 		//window.alert("Finding APs...");
-		console.log(data);
-		console.log(adj);
+		console.log(network.getConnectedNodes(25,"from"));
+		
+		time = 0;
+		var APs = [];
+		var visited = new Array(nbrNodes);
+		var disc = new Array(nbrNodes);
+		var low = new Array(nbrNodes);
+		var parent = new Array(nbrNodes);
+		for (var i = visited.length - 1; i >= 0; i--)
+		{
+				visited[i] = false;
+				disc[i] = 0;
+				low[i] = Number.MAX_SAFE_INTEGER;
+				parent[i] = -1;
+		}
+		
+		
+		DFS(disc, low, visited, parent, APs, 0, nbrNodes);
+		console.log(APs);
+	}
+
+	function helper(u, visited, disc, low, parent, ap) 
+	{ 
+	  
+	    // Count of children in DFS Tree 
+	    var children = 0; 
+	  
+	    // Mark the current node as visited 
+	    visited[u] = true; 
+	  
+	    // Initialize discovery time and low value 
+	    disc[u] = low[u] = ++time; 
+	  
+	    // Go through all vertices aadjacent to this 
+	    for (var i = 0; i < adj[u].length;++i) 
+	    { 
+	        var v = adj[u][i];  // v is current adjacent of u 
+	  
+	        // If v is not visited yet, then make it a child of u 
+	        // in DFS tree and recur for it 
+	        if (!visited[v]) 
+	        { 
+	            children++; 
+	            parent[v] = u; 
+	            helper(v, visited, disc, low, parent, ap); 
+	  
+	            // Check if the subtree rooted with v has a connection to 
+	            // one of the ancestors of u 
+	            low[u]  = Math.min(low[u], low[v]); 
+	  
+	            // u is an articulation point in following cases 
+	  
+	            // (1) u is root of DFS tree and has two or more chilren. 
+	            if (parent[u] == -1 && children > 1) 
+	               ap[u] = true; 
+	  
+	            // (2) If u is not root and low value of one of its child is more 
+	            // than discovery value of u. 
+	            if (parent[u] != -1 && low[v] >= disc[u]) 
+	               ap[u] = true; 
+	        } 
+	  
+	        // Update low value of u for parent function calls. 
+	        else if (v != parent[u]) 
+	            low[u]  = Math.min(low[u], disc[v]); 
+	    } 
+	} 
+	  
+	// The function to do DFS traversal. It uses recursive function APUtil() 
+	function AP() 
+	{
+
+	    // Mark all the vertices as not visited 
+	    var visited = new Array(nbrNodes); 
+	    var disc = new Array(nbrNodes); 
+	    var low = new Array(nbrNodes); 
+	    var parent = new Array(nbrNodes); 
+	    var ap = new Array(nbrNodes); // To store articulation points 
+	    time = 0; 
+	  
+	    // Initialize parent and visited, and ap(articulation point) arrays 
+	    for (var i = 0; i < nbrNodes; i++) 
+	    { 
+	        parent[i] = -1; 
+	        visited[i] = false; 
+	        ap[i] = false; 
+	    } 
+	  
+	    // Call the recursive helper function to find articulation points 
+	    // in DFS tree rooted with vertex 'i' 
+	    for (var i = 0; i < nbrNodes; i++) 
+	        if (visited[i] == false) 
+	            helper(i, visited, disc, low, parent, ap); 
+
+	  	var aps = [];
+	  	for (var i = 0; i < nbrNodes; i++) 
+        	if (ap[i] == true) 
+            	{
+            		aps.push(i);
+            		network.body.nodes[i].options.color.background = '#feb24c';
+            	}
+	  	console.log(aps);
+	  	network.redraw();
+	} 
+
+
+
+
+
+	function areAdjacent(from, to)
+	{
+		if(adj[from].findIndex(n => n == to) == -1)
+			return false;
+		return true;
 	}
 
   </script>
@@ -269,7 +345,7 @@
 			<span><button onclick="start()" >Draw</button></span>
 			<br>
 			<br>
-			<div><span><button onclick="findAPs()" >Find articulation points</button></span></div>
+			<div><span><button onclick="AP()" >Find articulation points</button></span></div>
 		
 	</div>
 	<div id="mynetwork" class="block"></div>
