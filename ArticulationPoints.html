@@ -5,24 +5,21 @@
   <title>Articulation Points</title>
 
   <style type="text/css">
-    body, select {
-      font: 10pt sans;
-    }
-    #mynetwork {
-        position: fixed;
-        left: 0px;
-        top: 0px;
-        bottom: 0px;
-        right: 20%;
-        min-height: 100vh;
-        border-right: 1px solid lightgray;
-        background: white;
-      }
-      #control {
-        position: absolute;
-        left: 80%;
-        padding: 1em;
-      }
+  	* {
+  		box-sizing: border-box;
+  		table-layout: fixed;
+  	  }
+  	 .panel {
+			  width: 25%;
+			  height: 100vh;
+			  float: left;
+			}
+	.graph{
+			  width: 75%;
+			  height: 100vh;
+			  float: left;
+			}
+
   </style>
 
   <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
@@ -215,30 +212,7 @@
 	  drawRandom(parseInt(document.getElementById("nbrNodes").value));
 	}
 
-	function findAPs() {
-		//window.alert("Finding APs...");
-		console.log(network.getConnectedNodes(25,"from"));
-		
-		time = 0;
-		var APs = [];
-		var visited = new Array(nbrNodes);
-		var disc = new Array(nbrNodes);
-		var low = new Array(nbrNodes);
-		var parent = new Array(nbrNodes);
-		for (var i = visited.length - 1; i >= 0; i--)
-		{
-				visited[i] = false;
-				disc[i] = 0;
-				low[i] = Number.MAX_SAFE_INTEGER;
-				parent[i] = -1;
-		}
-		
-		
-		DFS(disc, low, visited, parent, APs, 0, nbrNodes);
-		console.log(APs);
-	}
-
-	function helper(u, visited, disc, low, parent, ap) 
+	function APsDFS(u, visited, disc, low, parent, ap) 
 	{ 
 	  
 	    // Count of children in DFS Tree 
@@ -261,7 +235,7 @@
 	        { 
 	            children++; 
 	            parent[v] = u; 
-	            helper(v, visited, disc, low, parent, ap); 
+	            APsDFS(v, visited, disc, low, parent, ap); 
 	  
 	            // Check if the subtree rooted with v has a connection to 
 	            // one of the ancestors of u 
@@ -286,7 +260,7 @@
 	} 
 	  
 	// The function to do DFS traversal. It uses recursive function APUtil() 
-	function AP() 
+	function findAPs() 
 	{
 
 	    // Mark all the vertices as not visited 
@@ -305,20 +279,27 @@
 	        ap[i] = false; 
 	    } 
 	  
-	    // Call the recursive helper function to find articulation points 
+	    // Call the recursive APsDFS function to find articulation points 
 	    // in DFS tree rooted with vertex 'i' 
 	    for (var i = 0; i < nbrNodes; i++) 
 	        if (visited[i] == false) 
-	            helper(i, visited, disc, low, parent, ap); 
+	            APsDFS(i, visited, disc, low, parent, ap); 
 
 	  	var aps = [];
 	  	for (var i = 0; i < nbrNodes; i++) 
         	if (ap[i] == true) 
-            	{
-            		aps.push(i);
-            		network.body.nodes[i].options.color.background = '#feb24c';
-            	}
-	  	console.log(aps);
+        	{
+        		aps.push(i);
+        		network.body.nodes[i].options.color.background = '#feb24c';
+        	}
+        	else
+        		network.body.nodes[i].options.color.background = '#97C2FC';
+        
+        if(aps.length===0)
+        	window.alert("There are no Articulation Points.");
+        else
+        	window.alert("Articulation Points are the nodes : [ " + aps +" ]");
+
 	  	network.redraw();
 	} 
 
@@ -339,16 +320,15 @@
 
 <body onload="init();">
 
-	<div  id="control">
+	<div id="mynetwork" class="graph"></div>
+	<div  id="control" class="panel">
 		
-			<span>Enter the number of nodes :<input type="number" id="nbrNodes" min="1" max="50" value="5"></span>
-			<span><button onclick="start()" >Draw</button></span>
-			<br>
-			<br>
-			<div><span><button onclick="AP()" >Find articulation points</button></span></div>
+			<div class="row">Enter the number of nodes : <input type="number" id="nbrNodes" min="1" max="50" value="5"></div>
+			<div class="row"><button onclick="start()" >Draw</button></div>
+			<div class="row"><span><button onclick="findAPs()" >Find articulation points</button></span></div>
 		
 	</div>
-	<div id="mynetwork" class="block"></div>
+	
 
 </body>
 </html>
